@@ -1,0 +1,22 @@
+{
+  "characterId": "default",
+  "frameWidth": 200,
+  "frameHeight": 200,
+  "actions": {
+    "idle": { "startFrame": 0, "frameCount": 4, "duration": 2000, "loop": true, "interruptible": true },
+    "follow": { "startFrame": 4, "frameCount": 4, "duration": 1000, "loop": true, "interruptible": true },
+    "dodge": { "startFrame": 8, "frameCount": 3, "duration": 600, "loop": false, "interruptible": true },
+    "clickReact": { "startFrame": 11, "frameCount": 4, "duration": 800, "loop": false, "interruptible": false },
+    "happy": { "startFrame": 15, "frameCount": 6, "duration": 1500, "loop": false, "interruptible": true },
+    "sad": { "startFrame": 21, "frameCount": 6, "duration": 1500, "loop": false, "interruptible": true },
+    "angry": { "startFrame": 27, "frameCount": 5, "duration": 1200, "loop": false, "interruptible": true },
+    "surprised": { "startFrame": 32, "frameCount": 4, "duration": 1000, "loop": false, "interruptible": true },
+    "jump": { "startFrame": 36, "frameCount": 4, "duration": 800, "loop": false, "interruptible": true },
+    "rotate": { "startFrame": 40, "frameCount": 6, "duration": 1000, "loop": false, "interruptible": true },
+    "wave": { "startFrame": 46, "frameCount": 5, "duration": 1200, "loop": false, "interruptible": true },
+    "clap": { "startFrame": 51, "frameCount": 5, "duration": 1200, "loop": false, "interruptible": true },
+    "think": { "startFrame": 56, "frameCount": 6, "duration": 2000, "loop": false, "interruptible": true },
+    "fear": { "startFrame": 62, "frameCount": 4, "duration": 1000, "loop": false, "interruptible": true },
+    "complete": { "startFrame": 66, "frameCount": 5, "duration": 1500, "loop": false, "interruptible": false }
+  }
+}

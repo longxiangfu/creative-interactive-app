@@ -1,0 +1,16 @@
+.stage {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  min-height: 400px;
+  background: var(--stage-bg);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.1);
+}
+
+.canvas {
+  border-radius: 12px;
+}

@@ -1,65 +1,104 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+'use client';
 
-export default function Home() {
+import { useState, useCallback, useRef, useEffect } from 'react';
+import { SceneType, ActionType, Position } from '@/types';
+import { ResourceManager } from '@/engine/ResourceManager';
+import SceneSelector from '@/components/SceneSelector';
+import CharacterStage, { CharacterStageHandle } from '@/components/CharacterStage';
+import LoginScene from '@/components/scenes/LoginScene';
+import ReadingScene from '@/components/scenes/ReadingScene';
+import styles from './page.module.css';
+
+export default function HomePage() {
+  const [currentScene, setCurrentScene] = useState<SceneType>('login');
+  const [appReady, setAppReady] = useState(false);
+  const [browserCompatible, setBrowserCompatible] = useState(true);
+  const [sceneKey, setSceneKey] = useState(0);
+  const stageRef = useRef<CharacterStageHandle>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    const rm = new ResourceManager();
+    if (!rm.checkBrowserCompatibility()) {
+      setBrowserCompatible(false);
+      return;
+    }
+    setAppReady(true);
+  }, []);
+
+  const handleSwitchScene = useCallback((target: SceneType) => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      setCurrentScene((prev) => {
+        if (prev === target) return prev;
+        if (stageRef.current) {
+          stageRef.current.triggerAction('idle');
+        }
+        setSceneKey((k) => k + 1);
+        return target;
+      });
+    }, 500);
+  }, []);
+
+  const handleTriggerAction = useCallback((action: ActionType) => {
+    if (stageRef.current) {
+      stageRef.current.triggerAction(action);
+    }
+  }, []);
+
+  const handlePositionUpdate = useCallback((pos: Position) => {
+    if (stageRef.current) {
+      stageRef.current.updatePosition(pos);
+    }
+  }, []);
+
+  const handleGetPosition = useCallback((): Position => {
+    if (stageRef.current) {
+      return stageRef.current.getPosition();
+    }
+    return { x: 300, y: 200 };
+  }, []);
+
+  if (!browserCompatible) {
+    return (
+      <div className={styles.errorScreen}>
+        <h2>浏览器不兼容</h2>
+        <p>当前浏览器版本过低，请升级后使用</p>
+      </div>
+    );
+  }
+
   return (
-    <div className={styles.page}>
+    <div className={styles.container}>
+      <header className={styles.header}>
+        <h1 className={styles.title}>
+          <span className={styles.titleIcon}>🐾</span>
+          创意交互应用
+        </h1>
+      </header>
+
+      <SceneSelector activeScene={currentScene} onSwitchScene={handleSwitchScene} />
+
       <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className={styles.intro}>
-          <h1>To get started, edit the page.tsx file.</h1>
-          <p>
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+        <div className={styles.stageArea}>
+          <CharacterStage ref={stageRef} />
+          {currentScene === 'login' && (
+            <LoginScene
+              key={`login-${sceneKey}`}
+              onTriggerAction={handleTriggerAction}
+              onPositionUpdate={handlePositionUpdate}
+              getCharacterPosition={handleGetPosition}
             />
-            Deploy Now
-          </a>
-          <a
-            className={styles.secondary}
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+          )}
         </div>
+        {currentScene === 'reading' && (
+          <div className={styles.scenePanel}>
+            <ReadingScene
+              key={`reading-${sceneKey}`}
+              onTriggerAction={handleTriggerAction}
+            />
+          </div>
+        )}
       </main>
     </div>
   );
