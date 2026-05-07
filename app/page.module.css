@@ -41,6 +41,20 @@
   overflow: hidden;
 }
 
+.placeholder {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: var(--text-secondary);
+  font-size: 16px;
+}
+
 .scenePanel {
   animation: fadeIn 0.3s ease;
 }

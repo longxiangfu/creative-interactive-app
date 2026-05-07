@@ -22,6 +22,8 @@ export enum ActionState {
   INTERRUPTED = 'interrupted',
 }
 
+export type LoginSubMode = 'simple' | 'userLogin';
+
 export type SceneType = 'login' | 'reading';
 
 export interface Position {

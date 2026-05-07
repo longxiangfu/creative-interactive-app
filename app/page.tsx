@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { SceneType, ActionType, Position } from '@/types';
+import { SceneType, ActionType, Position, LoginSubMode } from '@/types';
 import { ResourceManager } from '@/engine/ResourceManager';
 import SceneSelector from '@/components/SceneSelector';
 import CharacterStage, { CharacterStageHandle } from '@/components/CharacterStage';
@@ -11,6 +11,7 @@ import styles from './page.module.css';
 
 export default function HomePage() {
   const [currentScene, setCurrentScene] = useState<SceneType>('login');
+  const [loginSubMode, setLoginSubMode] = useState<LoginSubMode>('simple');
   const [appReady, setAppReady] = useState(false);
   const [browserCompatible, setBrowserCompatible] = useState(true);
   const [sceneKey, setSceneKey] = useState(0);
@@ -40,6 +41,13 @@ export default function HomePage() {
     }, 500);
   }, []);
 
+  const handleSwitchLoginSubMode = useCallback((mode: LoginSubMode) => {
+    setLoginSubMode(mode);
+    if (currentScene !== 'login') {
+      setCurrentScene('login');
+    }
+  }, [currentScene]);
+
   const handleTriggerAction = useCallback((action: ActionType) => {
     if (stageRef.current) {
       stageRef.current.triggerAction(action);
@@ -68,6 +76,8 @@ export default function HomePage() {
     );
   }
 
+  const showLoginInteraction = currentScene === 'login' && loginSubMode === 'simple';
+
   return (
     <div className={styles.container}>
       <header className={styles.header}>
@@ -77,18 +87,28 @@ export default function HomePage() {
         </h1>
       </header>
 
-      <SceneSelector activeScene={currentScene} onSwitchScene={handleSwitchScene} />
+      <SceneSelector
+        activeScene={currentScene}
+        activeLoginSubMode={loginSubMode}
+        onSwitchScene={handleSwitchScene}
+        onSwitchLoginSubMode={handleSwitchLoginSubMode}
+      />
 
       <main className={styles.main}>
         <div className={styles.stageArea}>
           <CharacterStage ref={stageRef} />
-          {currentScene === 'login' && (
+          {showLoginInteraction && (
             <LoginScene
               key={`login-${sceneKey}`}
               onTriggerAction={handleTriggerAction}
               onPositionUpdate={handlePositionUpdate}
               getCharacterPosition={handleGetPosition}
             />
+          )}
+          {currentScene === 'login' && loginSubMode === 'userLogin' && (
+            <div className={styles.placeholder}>
+              <p>用户登录功能开发中…</p>
+            </div>
           )}
         </div>
         {currentScene === 'reading' && (
