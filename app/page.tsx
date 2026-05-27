@@ -125,7 +125,7 @@ export default function HomePage() {
       <header className={styles.header}>
         <h1 className={styles.title}>
           <span className={styles.titleIcon}>🐾</span>
-          创意交互应用
+          创意交互
         </h1>
       </header>
 
