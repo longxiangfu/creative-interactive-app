@@ -13,7 +13,9 @@ export type ActionType =
   | 'clap'
   | 'think'
   | 'fear'
-  | 'complete';
+  | 'complete'
+  | 'lookRight'
+  | 'lookLeft';
 
 export enum ActionState {
   IDLE = 'idle',
@@ -24,7 +26,7 @@ export enum ActionState {
 
 export type LoginSubMode = 'simple' | 'userLogin';
 
-export type SceneType = 'login' | 'reading';
+export type SceneType = 'login' | 'reading' | 'audio';
 
 export interface Position {
   x: number;
@@ -178,4 +180,33 @@ export interface IResourceManager {
   getLoadProgress(): number;
   isReady(): boolean;
   handleLoadError(id: string): void;
+}
+
+export interface CharacterInstance {
+  id: string;
+  type: string;
+  position: Position;
+  velocity: Position;
+  currentAction: ActionType;
+  actionState: ActionState;
+  actionElapsed: number;
+  jumpElapsed: number | null;
+  eyeDirection: -1 | 0 | 1;
+  eyeTrack: Position | null;
+  collisionCooldown: number;
+  radius: number;
+}
+
+export interface CollisionResult {
+  pair: [string, string];
+  normal: Position;
+  overlap: number;
+  point: Position;
+}
+
+export interface CollisionEvent {
+  time: number;
+  result: CollisionResult;
+  typeA: string;
+  typeB: string;
 }

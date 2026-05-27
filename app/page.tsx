@@ -1,12 +1,14 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { SceneType, ActionType, Position, LoginSubMode } from '@/types';
+import { SceneType, ActionType, Position, LoginSubMode, CollisionEvent } from '@/types';
 import { ResourceManager } from '@/engine/ResourceManager';
 import SceneSelector from '@/components/SceneSelector';
 import CharacterStage, { CharacterStageHandle } from '@/components/CharacterStage';
 import LoginScene from '@/components/scenes/LoginScene';
+import UserLoginPage from '@/components/scenes/UserLoginPage';
 import ReadingScene from '@/components/scenes/ReadingScene';
+import AudioScene from '@/components/scenes/AudioScene';
 import styles from './page.module.css';
 
 export default function HomePage() {
@@ -15,8 +17,10 @@ export default function HomePage() {
   const [appReady, setAppReady] = useState(false);
   const [browserCompatible, setBrowserCompatible] = useState(true);
   const [sceneKey, setSceneKey] = useState(0);
+  const [characterTypes, setCharacterTypes] = useState<string[]>(['cat']);
   const stageRef = useRef<CharacterStageHandle>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const jumpLockRef = useRef(false);
 
   useEffect(() => {
     const rm = new ResourceManager();
@@ -46,6 +50,10 @@ export default function HomePage() {
     if (currentScene !== 'login') {
       setCurrentScene('login');
     }
+    if (stageRef.current) {
+      stageRef.current.resetToCenter();
+      stageRef.current.triggerAction('idle');
+    }
   }, [currentScene]);
 
   const handleTriggerAction = useCallback((action: ActionType) => {
@@ -67,6 +75,39 @@ export default function HomePage() {
     return { x: 300, y: 200 };
   }, []);
 
+  const handleFocusFieldChange = useCallback((field: string, showPassword: boolean) => {
+    if (!stageRef.current) return;
+    if (field === 'none') {
+      stageRef.current.setEyeDirection(0);
+      stageRef.current.triggerAction('idle');
+    } else if (showPassword) {
+      stageRef.current.setEyeDirection(-1);
+      stageRef.current.triggerAction('lookLeft');
+    } else {
+      stageRef.current.setEyeDirection(1);
+      stageRef.current.triggerAction('lookRight');
+    }
+  }, []);
+
+  const handleCharacterJump = useCallback(() => {}, []);
+
+  const handleEyeTrack = useCallback((track: Position | null) => {
+    if (stageRef.current) {
+      stageRef.current.setEyeTrack(track);
+    }
+  }, []);
+
+  const handleCharacterTypesChange = useCallback((types: string[]) => {
+    setCharacterTypes(types);
+    if (stageRef.current) {
+      stageRef.current.setCharacterTypes(types);
+    }
+  }, []);
+
+  const handleCollision = useCallback((event: CollisionEvent) => {
+    console.log('碰撞事件:', event);
+  }, []);
+
   if (!browserCompatible) {
     return (
       <div className={styles.errorScreen}>
@@ -77,6 +118,7 @@ export default function HomePage() {
   }
 
   const showLoginInteraction = currentScene === 'login' && loginSubMode === 'simple';
+  const showUserLogin = currentScene === 'login' && loginSubMode === 'userLogin';
 
   return (
     <div className={styles.container}>
@@ -95,19 +137,21 @@ export default function HomePage() {
       />
 
       <main className={styles.main}>
-        <div className={styles.stageArea}>
-          <CharacterStage ref={stageRef} />
-          {showLoginInteraction && (
-            <LoginScene
-              key={`login-${sceneKey}`}
-              onTriggerAction={handleTriggerAction}
-              onPositionUpdate={handlePositionUpdate}
-              getCharacterPosition={handleGetPosition}
-            />
-          )}
-          {currentScene === 'login' && loginSubMode === 'userLogin' && (
-            <div className={styles.placeholder}>
-              <p>用户登录功能开发中…</p>
+        <div className={showUserLogin ? styles.splitArea : styles.stageArea}>
+          <div className={showUserLogin ? styles.splitLeft : styles.stageFull}>
+            <CharacterStage ref={stageRef} characterTypes={characterTypes} onCharacterTypesChange={handleCharacterTypesChange} onCollision={handleCollision} />
+            {showLoginInteraction && (
+              <LoginScene
+                key={`login-${sceneKey}`}
+                onTriggerAction={handleTriggerAction}
+                onPositionUpdate={handlePositionUpdate}
+                getCharacterPosition={handleGetPosition}
+              />
+            )}
+          </div>
+          {showUserLogin && (
+            <div className={styles.splitRight}>
+              <UserLoginPage onFocusFieldChange={handleFocusFieldChange} onCharacterJump={handleCharacterJump} onEyeTrack={handleEyeTrack} />
             </div>
           )}
         </div>
@@ -115,6 +159,14 @@ export default function HomePage() {
           <div className={styles.scenePanel}>
             <ReadingScene
               key={`reading-${sceneKey}`}
+              onTriggerAction={handleTriggerAction}
+            />
+          </div>
+        )}
+        {currentScene === 'audio' && (
+          <div className={styles.scenePanel}>
+            <AudioScene
+              key={`audio-${sceneKey}`}
               onTriggerAction={handleTriggerAction}
             />
           </div>

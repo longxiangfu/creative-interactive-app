@@ -76,6 +76,18 @@ export class CharacterEngine implements ICharacterEngine {
     this.animator.setAction('idle');
   }
 
+  setEyeDirection(dir: -1 | 0 | 1): void {
+    this.animator.setEyeDirection(dir);
+  }
+
+  setCharacterType(type: string): void {
+    this.animator.setCharacterType(type);
+  }
+
+  triggerJump(): void {
+    this.animator.triggerJump();
+  }
+
   destroy(): void {
     this.animator.stop();
     this.actionSystem.destroy();

@@ -16,4 +16,6 @@ export const ACTION_DEFINITIONS: Record<string, ActionDefinition> = {
   think: { type: 'think', label: '思考', duration: 2000, loop: false, interruptible: true, transitionDuration: 200, priority: 2 },
   fear: { type: 'fear', label: '害怕', duration: 1000, loop: false, interruptible: true, transitionDuration: 200, priority: 2 },
   complete: { type: 'complete', label: '完成', duration: 1500, loop: false, interruptible: false, transitionDuration: 200, priority: 2 },
+  lookRight: { type: 'lookRight', label: '向右看', duration: 99999, loop: true, interruptible: true, transitionDuration: 200, priority: 6 },
+  lookLeft: { type: 'lookLeft', label: '向左看', duration: 99999, loop: true, interruptible: true, transitionDuration: 200, priority: 6 },
 };

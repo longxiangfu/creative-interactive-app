@@ -1,4 +1,5 @@
 import { IAnimator, Position, SpriteData, ActionFrames, ActionState } from '@/types';
+import { drawCatFace, drawDogFace, drawRabbitFace, drawRoosterFace, drawPigFace, drawCowFace, drawSheepFace, Emotion } from '@/utils/drawCharacter';
 
 export class Animator implements IAnimator {
   private running = false;
@@ -23,6 +24,9 @@ export class Animator implements IAnimator {
   private positionSmoothing = 5;
   private onFrameCallback: ((pos: Position) => void) | null = null;
   private globalTime = 0;
+  private eyeDirection: -1 | 0 | 1 = 0;
+  private characterType: string = 'cat';
+  private jumpElapsed: number | null = null;
 
   init(canvas: HTMLCanvasElement, spriteImage: HTMLImageElement | null, spriteData: SpriteData | null): void {
     this.canvas = canvas;
@@ -63,6 +67,18 @@ export class Animator implements IAnimator {
     this.onFrameCallback = cb;
   }
 
+  setEyeDirection(dir: -1 | 0 | 1): void {
+    this.eyeDirection = dir;
+  }
+
+  setCharacterType(type: string): void {
+    this.characterType = type;
+  }
+
+  triggerJump(): void {
+    this.jumpElapsed = 0;
+  }
+
   start(): void {
     if (this.running) return;
     this.running = true;
@@ -95,6 +111,13 @@ export class Animator implements IAnimator {
     const lerpFactor = 1 - Math.exp(-this.positionSmoothing * deltaSeconds);
     this.characterPos.x += (this.targetPos.x - this.characterPos.x) * lerpFactor;
     this.characterPos.y += (this.targetPos.y - this.characterPos.y) * lerpFactor;
+
+    if (this.jumpElapsed !== null) {
+      this.jumpElapsed += delta;
+      if (this.jumpElapsed >= 800) {
+        this.jumpElapsed = null;
+      }
+    }
 
     this.frameCount++;
     this.fpsAccumulator += delta;
@@ -134,7 +157,7 @@ export class Animator implements IAnimator {
       }
     } else {
       if (this.actionElapsed >= 500) {
-        this.actionElapsed = 0;
+        this.actionElapsed = 500;
         this.currentFrameIndex++;
       }
     }
@@ -185,12 +208,48 @@ export class Animator implements IAnimator {
     this.drawFallback();
   }
 
+  private readonly CHARACTERS: Record<string, string> = {
+    cat: '__draw__',
+    dog: '__draw__',
+    rabbit: '__draw__',
+    rooster: '__draw__',
+    pig: '__draw__',
+    cow: '__draw__',
+    sheep: '__draw__',
+  };
+
+  private getEmotion(): Emotion {
+    if (this.currentAction === 'happy' || this.currentAction === 'clap' || this.currentAction === 'complete') return 'happy';
+    if (this.currentAction === 'sad') return 'sad';
+    if (this.currentAction === 'angry') return 'angry';
+    if (this.currentAction === 'surprised' || this.currentAction === 'clickReact') return 'surprised';
+    if (this.currentAction === 'fear' || this.currentAction === 'dodge') return 'fear';
+    return 'neutral';
+  }
+
+  private drawCharacterFace(ctx: CanvasRenderingContext2D, x: number, y: number): void {
+    const emotion = this.getEmotion();
+    if (this.characterType === 'cat') drawCatFace(ctx, x, y, 1, emotion);
+    else if (this.characterType === 'dog') drawDogFace(ctx, x, y, 1, emotion);
+    else if (this.characterType === 'rabbit') drawRabbitFace(ctx, x, y, 1, emotion);
+    else if (this.characterType === 'rooster') drawRoosterFace(ctx, x, y, 1, emotion);
+    else if (this.characterType === 'pig') drawPigFace(ctx, x, y, 1, emotion);
+    else if (this.characterType === 'cow') drawCowFace(ctx, x, y, 1, emotion);
+    else if (this.characterType === 'sheep') drawSheepFace(ctx, x, y, 1, emotion);
+    else drawCatFace(ctx, x, y, 1, emotion);
+  }
+
   private drawFallback(): void {
     if (!this.ctx || !this.canvas) return;
     const ctx = this.ctx;
     const x = this.characterPos.x;
     const y = this.characterPos.y;
     const breathe = Math.sin(this.globalTime / 800) * 3;
+    const emoji = this.CHARACTERS[this.characterType] || this.CHARACTERS.cat;
+
+    if (this.currentAction === 'jump' && this.jumpElapsed === null) {
+      this.jumpElapsed = 0;
+    }
 
     ctx.save();
     ctx.translate(0, breathe);
@@ -200,129 +259,99 @@ export class Animator implements IAnimator {
       ctx.scale(0.85, 1.15);
       ctx.translate(-x, -y);
     }
-    if (this.currentAction === 'jump') {
-      ctx.translate(0, -30 * Math.abs(Math.sin(this.globalTime / 200)));
+    if (this.jumpElapsed !== null) {
+      const t = Math.min(this.jumpElapsed / 800, 1);
+      const jumpHeight = 30 * Math.sin(t * Math.PI) * (1 - t * 0.3);
+      ctx.translate(0, -jumpHeight);
     }
     if (this.currentAction === 'rotate') {
       ctx.translate(x, y);
       ctx.rotate((this.globalTime / 160) % (Math.PI * 2));
       ctx.translate(-x, -y);
     }
+    if (this.currentAction === 'lookRight') {
+      ctx.translate(15, 0);
+      ctx.translate(x, y);
+      ctx.rotate(0.25);
+      ctx.translate(-x, -y);
+    }
+    if (this.currentAction === 'lookLeft') {
+      ctx.translate(-15, 0);
+      ctx.translate(x, y);
+      ctx.rotate(-0.25);
+      ctx.translate(-x, -y);
+    }
 
-    ctx.beginPath();
-    ctx.arc(x, y, 50, 0, Math.PI * 2);
-    ctx.fillStyle = '#fbbf24';
-    ctx.fill();
-    ctx.strokeStyle = '#f59e0b';
-    ctx.lineWidth = 3;
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.arc(x, y + 5, 35, 0, Math.PI);
-    ctx.fillStyle = '#fef3c7';
-    ctx.fill();
-
-    ctx.beginPath();
-    ctx.arc(x - 15, y - 12, 6, 0, Math.PI * 2);
-    ctx.fillStyle = '#1a1a2e';
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(x - 17, y - 14, 2.5, 0, Math.PI * 2);
-    ctx.fillStyle = '#fff';
-    ctx.fill();
-
-    ctx.beginPath();
-    ctx.arc(x + 15, y - 12, 6, 0, Math.PI * 2);
-    ctx.fillStyle = '#1a1a2e';
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(x + 13, y - 14, 2.5, 0, Math.PI * 2);
-    ctx.fillStyle = '#fff';
-    ctx.fill();
-
-    if (this.currentAction === 'happy' || this.currentAction === 'clap' || this.currentAction === 'complete') {
-      ctx.beginPath();
-      ctx.arc(x, y + 10, 14, 0.1, Math.PI - 0.1);
-      ctx.strokeStyle = '#1a1a2e';
-      ctx.lineWidth = 2.5;
-      ctx.stroke();
-    } else if (this.currentAction === 'sad') {
-      ctx.beginPath();
-      ctx.arc(x, y + 20, 14, Math.PI + 0.1, -0.1);
-      ctx.strokeStyle = '#1a1a2e';
-      ctx.lineWidth = 2.5;
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.ellipse(x - 22, y + 2, 3, 6, 0, 0, Math.PI * 2);
-      ctx.fillStyle = '#60a5fa';
-      ctx.fill();
-    } else if (this.currentAction === 'surprised' || this.currentAction === 'clickReact') {
-      ctx.beginPath();
-      ctx.ellipse(x, y + 12, 8, 10, 0, 0, Math.PI * 2);
-      ctx.strokeStyle = '#1a1a2e';
-      ctx.lineWidth = 2.5;
-      ctx.stroke();
-    } else if (this.currentAction === 'angry') {
-      ctx.beginPath();
-      ctx.moveTo(x - 10, y + 12);
-      ctx.lineTo(x + 10, y + 12);
-      ctx.strokeStyle = '#1a1a2e';
-      ctx.lineWidth = 2.5;
-      ctx.stroke();
-    } else if (this.currentAction === 'fear') {
-      ctx.beginPath();
-      ctx.ellipse(x, y + 10, 6, 8, 0, 0, Math.PI * 2);
-      ctx.strokeStyle = '#1a1a2e';
-      ctx.lineWidth = 2;
-      ctx.stroke();
+    if (emoji === '__draw__') {
+      this.drawCharacterFace(ctx, x, y);
     } else {
-      ctx.beginPath();
-      ctx.moveTo(x - 8, y + 12);
-      ctx.quadraticCurveTo(x, y + 18, x + 8, y + 12);
-      ctx.strokeStyle = '#1a1a2e';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-    }
-
-    if (this.currentAction === 'angry') {
-      ctx.beginPath();
-      ctx.moveTo(x - 22, y - 24);
-      ctx.lineTo(x - 8, y - 18);
-      ctx.moveTo(x + 22, y - 24);
-      ctx.lineTo(x + 8, y - 18);
-      ctx.strokeStyle = '#1a1a2e';
-      ctx.lineWidth = 2.5;
-      ctx.stroke();
-    }
-
-    if (this.currentAction === 'wave' || this.currentAction === 'complete') {
-      const waveAngle = Math.sin(this.globalTime / 150) * 0.5;
-      ctx.save();
-      ctx.translate(x + 45, y - 10);
-      ctx.rotate(waveAngle - 0.5);
-      ctx.beginPath();
-      ctx.roundRect(-5, -3, 10, 25, 5);
-      ctx.fillStyle = '#fbbf24';
-      ctx.fill();
-      ctx.strokeStyle = '#f59e0b';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-      ctx.restore();
+      const fontSize = 90;
+      ctx.font = `${fontSize}px serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(emoji, x, y);
     }
 
     if (this.currentAction === 'think') {
       ctx.font = '24px serif';
       ctx.fillStyle = '#6b7280';
-      ctx.fillText('\u{1F4AD}', x + 40, y - 35);
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'alphabetic';
+      ctx.fillText('\u{1F4AD}', x + 50, y - 40);
+    }
+
+    if (this.currentAction === 'happy' || this.currentAction === 'clap' || this.currentAction === 'complete') {
+      ctx.font = '20px serif';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'alphabetic';
+      ctx.fillText('✨', x + 35, y - 30);
+      ctx.fillText('✨', x - 40, y - 25);
+    }
+
+    if (this.currentAction === 'sad') {
+      ctx.font = '20px serif';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'alphabetic';
+      ctx.fillText('💧', x - 35, y - 5);
+    }
+
+    if (this.currentAction === 'angry') {
+      ctx.font = '18px serif';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'alphabetic';
+      ctx.fillText('💢', x + 30, y - 35);
+    }
+
+    if (this.currentAction === 'surprised' || this.currentAction === 'clickReact') {
+      ctx.font = '18px serif';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'alphabetic';
+      ctx.fillText('‼️', x + 35, y - 30);
     }
 
     if (this.currentAction === 'follow') {
-      ctx.beginPath();
-      ctx.moveTo(x - 20, y + 22);
-      ctx.quadraticCurveTo(x, y + 30, x + 20, y + 22);
-      ctx.strokeStyle = '#f59e0b';
-      ctx.lineWidth = 2;
-      ctx.stroke();
+      ctx.font = '18px serif';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'alphabetic';
+      ctx.fillText('💕', x + 30, y - 30);
+    }
+
+    if (this.currentAction === 'wave') {
+      const waveOffset = Math.sin(this.globalTime / 150) * 15;
+      ctx.translate(x + 40, y - 20);
+      ctx.rotate(waveOffset * 0.05);
+      ctx.translate(-x - 40, -(y - 20));
+      ctx.font = '24px serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('👋', x + 40, y - 20);
+    }
+
+    if (this.currentAction === 'clap') {
+      const clapScale = 1 + Math.sin(this.globalTime / 100) * 0.2;
+      ctx.translate(x + 35, y - 25);
+      ctx.scale(clapScale, clapScale);
+      ctx.translate(-x - 35, -(y - 25));
     }
 
     ctx.restore();

@@ -54,7 +54,7 @@ export default function SceneSelector({ activeScene, activeLoginSubMode, onSwitc
           onClick={handleLoginClick}
         >
           <span className={styles.icon}>🐱</span>
-          <span className={styles.label}>用户操作</span>
+          <span className={styles.label}>鼠标跟随</span>
           <span className={`${styles.arrow} ${dropdownOpen ? styles.arrowOpen : ''}`}>▾</span>
         </button>
         {dropdownOpen && (
@@ -79,6 +79,15 @@ export default function SceneSelector({ activeScene, activeLoginSubMode, onSwitc
       >
         <span className={styles.icon}>📖</span>
         <span className={styles.label}>文本阅读</span>
+      </button>
+
+      <button
+        className={`${styles.button} ${activeScene === 'audio' ? styles.active : ''}`}
+        onClick={() => onSwitchScene('audio')}
+        title="上传音频，动物根据音频内容做出各种表情和动作"
+      >
+        <span className={styles.icon}>🎵</span>
+        <span className={styles.label}>音频赏析</span>
       </button>
     </nav>
   );
