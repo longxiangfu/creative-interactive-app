@@ -32,7 +32,7 @@ export function useAudioAnalysis(callbacks: AudioAnalysisCallbacks) {
     if (audioElementRef.current) {
       audioElementRef.current.pause();
       audioElementRef.current.onended = null;
-      audioElementRef.onerror = null;
+      audioElementRef.current.onerror = null;
       audioElementRef.current = null;
     }
     if (sourceRef.current) {

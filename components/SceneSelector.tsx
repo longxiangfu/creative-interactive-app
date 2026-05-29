@@ -89,6 +89,15 @@ export default function SceneSelector({ activeScene, activeLoginSubMode, onSwitc
         <span className={styles.icon}>🎵</span>
         <span className={styles.label}>音频赏析</span>
       </button>
+
+      <button
+        className={`${styles.button} ${activeScene === 'video' ? styles.active : ''}`}
+        onClick={() => onSwitchScene('video')}
+        title="上传视频，动物根据视频内容做出各种表情和动作"
+      >
+        <span className={styles.icon}>🎬</span>
+        <span className={styles.label}>影视畅游</span>
+      </button>
     </nav>
   );
 }

@@ -9,6 +9,7 @@ import LoginScene from '@/components/scenes/LoginScene';
 import UserLoginPage from '@/components/scenes/UserLoginPage';
 import ReadingScene from '@/components/scenes/ReadingScene';
 import AudioScene from '@/components/scenes/AudioScene';
+import VideoScene from '@/components/scenes/VideoScene';
 import styles from './page.module.css';
 
 export default function HomePage() {
@@ -167,6 +168,14 @@ export default function HomePage() {
           <div className={styles.scenePanel}>
             <AudioScene
               key={`audio-${sceneKey}`}
+              onTriggerAction={handleTriggerAction}
+            />
+          </div>
+        )}
+        {currentScene === 'video' && (
+          <div className={styles.scenePanel}>
+            <VideoScene
+              key={`video-${sceneKey}`}
               onTriggerAction={handleTriggerAction}
             />
           </div>

@@ -16,9 +16,9 @@ export class MultiCharacterRenderer {
   private homePositions: Map<string, Position> = new Map();
   private homeOffsets: Map<string, Position> = new Map();
   private groupCenter: Position = { x: 300, y: 200 };
-  private friction = 0.95;
-  private characterRadius = 40;
-  private attractStrength = 0.03;
+  private friction = 0.985;
+  private characterRadius = 80;
+  private attractStrength = 0.008;
 
   constructor() {
     this.collisionEngine = new CollisionEngine();
@@ -52,7 +52,7 @@ export class MultiCharacterRenderer {
       if (!currentTypes.includes(type)) {
         const id = `${type}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         const angle = (i / count) * Math.PI * 2;
-        const dist = count === 1 ? 0 : (60 + i * 20);
+        const dist = count === 1 ? 0 : (120 + i * 40);
         const offsetX = Math.cos(angle) * dist;
         const offsetY = Math.sin(angle) * dist;
         const homeX = this.groupCenter.x + offsetX;
@@ -70,6 +70,7 @@ export class MultiCharacterRenderer {
           eyeTrack: null,
           collisionCooldown: 0,
           radius: this.characterRadius,
+          freeBounceUntil: 0,
         });
         this.homePositions.set(id, { x: homeX, y: homeY });
         this.homeOffsets.set(id, { x: offsetX, y: offsetY });
@@ -166,20 +167,29 @@ export class MultiCharacterRenderer {
     this.globalTime += delta;
 
     for (const [id, char] of this.characters) {
+      const isFreeBouncing = char.freeBounceUntil === -1 || this.globalTime < char.freeBounceUntil;
+      const speed = Math.sqrt(char.velocity.x * char.velocity.x + char.velocity.y * char.velocity.y);
+
+      if (isFreeBouncing && speed < 0.5) {
+        char.freeBounceUntil = 0;
+      }
+
       const home = this.homePositions.get(id);
-      if (home) {
+      if (home && !isFreeBouncing) {
         const dx = home.x - char.position.x;
         const dy = home.y - char.position.y;
         char.velocity.x += dx * this.attractStrength;
         char.velocity.y += dy * this.attractStrength;
       }
-      char.velocity.x *= this.friction;
-      char.velocity.y *= this.friction;
-      const maxSpeed = 6;
-      const speed = Math.sqrt(char.velocity.x * char.velocity.x + char.velocity.y * char.velocity.y);
-      if (speed > maxSpeed) {
-        char.velocity.x = (char.velocity.x / speed) * maxSpeed;
-        char.velocity.y = (char.velocity.y / speed) * maxSpeed;
+
+      const friction = isFreeBouncing ? 0.998 : this.friction;
+      char.velocity.x *= friction;
+      char.velocity.y *= friction;
+      const maxSpeed = 15;
+      const speed2 = Math.sqrt(char.velocity.x * char.velocity.x + char.velocity.y * char.velocity.y);
+      if (speed2 > maxSpeed) {
+        char.velocity.x = (char.velocity.x / speed2) * maxSpeed;
+        char.velocity.y = (char.velocity.y / speed2) * maxSpeed;
       }
       char.position.x += char.velocity.x;
       char.position.y += char.velocity.y;
@@ -257,68 +267,68 @@ export class MultiCharacterRenderer {
       ctx.translate(-x, -y);
     }
 
-    if (char.type === 'cat') drawCatFace(ctx, x, y, 1, emotion, eyeTrack);
-    else if (char.type === 'dog') drawDogFace(ctx, x, y, 1, emotion, eyeTrack);
-    else if (char.type === 'rabbit') drawRabbitFace(ctx, x, y, 1, emotion, eyeTrack);
-    else if (char.type === 'rooster') drawRoosterFace(ctx, x, y, 1, emotion, eyeTrack);
-    else if (char.type === 'pig') drawPigFace(ctx, x, y, 1, emotion, eyeTrack);
-    else if (char.type === 'cow') drawCowFace(ctx, x, y, 1, emotion, eyeTrack);
-    else if (char.type === 'sheep') drawSheepFace(ctx, x, y, 1, emotion, eyeTrack);
-    else drawCatFace(ctx, x, y, 1, emotion, eyeTrack);
+    if (char.type === 'cat') drawCatFace(ctx, x, y, 2, emotion, eyeTrack);
+    else if (char.type === 'dog') drawDogFace(ctx, x, y, 2, emotion, eyeTrack);
+    else if (char.type === 'rabbit') drawRabbitFace(ctx, x, y, 2, emotion, eyeTrack);
+    else if (char.type === 'rooster') drawRoosterFace(ctx, x, y, 2, emotion, eyeTrack);
+    else if (char.type === 'pig') drawPigFace(ctx, x, y, 2, emotion, eyeTrack);
+    else if (char.type === 'cow') drawCowFace(ctx, x, y, 2, emotion, eyeTrack);
+    else if (char.type === 'sheep') drawSheepFace(ctx, x, y, 2, emotion, eyeTrack);
+    else drawCatFace(ctx, x, y, 2, emotion, eyeTrack);
 
     if (char.currentAction === 'think') {
-      ctx.font = '24px serif';
+      ctx.font = '48px serif';
       ctx.fillStyle = '#6b7280';
       ctx.textAlign = 'left';
       ctx.textBaseline = 'alphabetic';
-      ctx.fillText('\u{1F4AD}', x + 50, y - 40);
+      ctx.fillText('\u{1F4AD}', x + 100, y - 80);
     }
     if (char.currentAction === 'happy' || char.currentAction === 'clap' || char.currentAction === 'complete') {
-      ctx.font = '20px serif';
+      ctx.font = '40px serif';
       ctx.textAlign = 'left';
       ctx.textBaseline = 'alphabetic';
-      ctx.fillText('✨', x + 35, y - 30);
-      ctx.fillText('✨', x - 40, y - 25);
+      ctx.fillText('✨', x + 70, y - 60);
+      ctx.fillText('✨', x - 80, y - 50);
     }
     if (char.currentAction === 'sad') {
-      ctx.font = '20px serif';
+      ctx.font = '40px serif';
       ctx.textAlign = 'left';
       ctx.textBaseline = 'alphabetic';
-      ctx.fillText('💧', x - 35, y - 5);
+      ctx.fillText('💧', x - 70, y - 10);
     }
     if (char.currentAction === 'angry') {
-      ctx.font = '18px serif';
+      ctx.font = '36px serif';
       ctx.textAlign = 'left';
       ctx.textBaseline = 'alphabetic';
-      ctx.fillText('💢', x + 30, y - 35);
+      ctx.fillText('💢', x + 60, y - 70);
     }
     if (char.currentAction === 'surprised' || char.currentAction === 'clickReact') {
-      ctx.font = '18px serif';
+      ctx.font = '36px serif';
       ctx.textAlign = 'left';
       ctx.textBaseline = 'alphabetic';
-      ctx.fillText('‼️', x + 35, y - 30);
+      ctx.fillText('‼️', x + 70, y - 60);
     }
     if (char.currentAction === 'follow') {
-      ctx.font = '18px serif';
+      ctx.font = '36px serif';
       ctx.textAlign = 'left';
       ctx.textBaseline = 'alphabetic';
-      ctx.fillText('💕', x + 30, y - 30);
+      ctx.fillText('💕', x + 60, y - 60);
     }
     if (char.currentAction === 'wave') {
       const waveOffset = Math.sin(this.globalTime / 150) * 15;
-      ctx.translate(x + 40, y - 20);
+      ctx.translate(x + 80, y - 40);
       ctx.rotate(waveOffset * 0.05);
-      ctx.translate(-x - 40, -(y - 20));
-      ctx.font = '24px serif';
+      ctx.translate(-x - 80, -(y - 40));
+      ctx.font = '48px serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText('👋', x + 40, y - 20);
+      ctx.fillText('👋', x + 80, y - 40);
     }
     if (char.currentAction === 'clap') {
       const clapScale = 1 + Math.sin(this.globalTime / 100) * 0.2;
-      ctx.translate(x + 35, y - 25);
+      ctx.translate(x + 70, y - 50);
       ctx.scale(clapScale, clapScale);
-      ctx.translate(-x - 35, -(y - 25));
+      ctx.translate(-x - 70, -(y - 50));
     }
 
     ctx.restore();

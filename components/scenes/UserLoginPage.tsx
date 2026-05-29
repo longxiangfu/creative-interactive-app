@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect, useRef } from 'react';
+import { Position } from '@/types';
 import styles from './UserLoginPage.module.css';
 
 type FocusField = 'none' | 'username' | 'password' | 'captcha';

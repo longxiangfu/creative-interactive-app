@@ -26,7 +26,7 @@ export enum ActionState {
 
 export type LoginSubMode = 'simple' | 'userLogin';
 
-export type SceneType = 'login' | 'reading' | 'audio';
+export type SceneType = 'login' | 'reading' | 'audio' | 'video';
 
 export interface Position {
   x: number;
@@ -195,6 +195,7 @@ export interface CharacterInstance {
   eyeTrack: Position | null;
   collisionCooldown: number;
   radius: number;
+  freeBounceUntil: number;
 }
 
 export interface CollisionResult {
