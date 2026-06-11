@@ -10,9 +10,10 @@ interface UserLoginPageProps {
   onFocusFieldChange?: (field: FocusField, showPassword: boolean) => void;
   onCharacterJump?: () => void;
   onEyeTrack?: (track: Position | null) => void;
+  onLoginResult?: (success: boolean) => void;
 }
 
-export default function UserLoginPage({ onFocusFieldChange, onCharacterJump, onEyeTrack }: UserLoginPageProps) {
+export default function UserLoginPage({ onFocusFieldChange, onCharacterJump, onEyeTrack, onLoginResult }: UserLoginPageProps) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -151,7 +152,13 @@ export default function UserLoginPage({ onFocusFieldChange, onCharacterJump, onE
     setLoading(true);
     setTimeout(() => {
       setLoading(false);
-      setMessage({ type: 'success', text: `登录成功，欢迎 ${username}！` });
+      if (username === 'admin' && password === '123456') {
+        setMessage({ type: 'success', text: `登录成功，欢迎 ${username}！` });
+        onLoginResult?.(true);
+      } else {
+        setMessage({ type: 'error', text: '用户名或密码错误' });
+        onLoginResult?.(false);
+      }
     }, 1500);
   };
 

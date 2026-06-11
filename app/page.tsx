@@ -76,6 +76,24 @@ export default function HomePage() {
     return { x: 300, y: 200 };
   }, []);
 
+  const handleMouseInteraction = useCallback((mousePos: Position) => {
+    if (stageRef.current) {
+      stageRef.current.updateMouseInteraction(mousePos);
+    }
+  }, []);
+
+  const handleClickReaction = useCallback((clickPos: Position) => {
+    if (stageRef.current) {
+      stageRef.current.triggerClickReaction(clickPos);
+    }
+  }, []);
+
+  const handleIdle = useCallback(() => {
+    if (stageRef.current) {
+      stageRef.current.triggerAction('idle');
+    }
+  }, []);
+
   const handleFocusFieldChange = useCallback((field: string, showPassword: boolean) => {
     if (!stageRef.current) return;
     if (field === 'none') {
@@ -91,6 +109,23 @@ export default function HomePage() {
   }, []);
 
   const handleCharacterJump = useCallback(() => {}, []);
+
+  const handleLoginResult = useCallback((success: boolean) => {
+    if (!stageRef.current) return;
+    if (success) {
+      stageRef.current.triggerAction('happy');
+      setTimeout(() => {
+        if (stageRef.current) {
+          stageRef.current.triggerAction('jump');
+          setTimeout(() => {
+            if (stageRef.current) stageRef.current.triggerAction('happy');
+          }, 800);
+        }
+      }, 200);
+    } else {
+      stageRef.current.triggerAction('sad');
+    }
+  }, []);
 
   const handleEyeTrack = useCallback((track: Position | null) => {
     if (stageRef.current) {
@@ -144,15 +179,15 @@ export default function HomePage() {
             {showLoginInteraction && (
               <LoginScene
                 key={`login-${sceneKey}`}
-                onTriggerAction={handleTriggerAction}
-                onPositionUpdate={handlePositionUpdate}
-                getCharacterPosition={handleGetPosition}
+                onMouseInteraction={handleMouseInteraction}
+                onClickReaction={handleClickReaction}
+                onIdle={handleIdle}
               />
             )}
           </div>
           {showUserLogin && (
             <div className={styles.splitRight}>
-              <UserLoginPage onFocusFieldChange={handleFocusFieldChange} onCharacterJump={handleCharacterJump} onEyeTrack={handleEyeTrack} />
+              <UserLoginPage onFocusFieldChange={handleFocusFieldChange} onCharacterJump={handleCharacterJump} onEyeTrack={handleEyeTrack} onLoginResult={handleLoginResult} />
             </div>
           )}
         </div>

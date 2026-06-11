@@ -1,11 +1,14 @@
 'use client';
 
-import { useRef, useEffect, useImperativeHandle, forwardRef } from 'react';
+import { useRef, useEffect, useImperativeHandle, forwardRef, useState, useCallback } from 'react';
 import { ActionType, Position, CollisionEvent } from '@/types';
 import { MultiCharacterRenderer } from '@/engine/MultiCharacterRenderer';
 import { SoundManager } from '@/engine/SoundManager';
 import CharacterSwitcher from './CharacterSwitcher';
 import styles from './CharacterStage.module.css';
+
+const CANVAS_WIDTH = 600;
+const CANVAS_HEIGHT = 400;
 
 export interface CharacterStageHandle {
   triggerAction: (action: ActionType) => void;
@@ -15,6 +18,8 @@ export interface CharacterStageHandle {
   setCharacterTypes: (types: string[]) => void;
   resetToCenter: () => void;
   setEyeTrack: (track: Position | null) => void;
+  updateMouseInteraction: (mousePos: Position) => void;
+  triggerClickReaction: (clickPos: Position) => void;
 }
 
 interface CharacterStageProps {
@@ -29,6 +34,8 @@ const CharacterStage = forwardRef<CharacterStageHandle, CharacterStageProps>(
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const rendererRef = useRef<MultiCharacterRenderer | null>(null);
     const soundManagerRef = useRef<SoundManager | null>(null);
+    const [zoomLevel, setZoomLevel] = useState(1);
+    const stageContainerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
       const canvas = canvasRef.current;
@@ -61,6 +68,12 @@ const CharacterStage = forwardRef<CharacterStageHandle, CharacterStageProps>(
         rendererRef.current.setCharacters(characterTypes);
       }
     }, [characterTypes]);
+
+    useEffect(() => {
+      const renderer = rendererRef.current;
+      if (!renderer) return;
+      renderer.setDrawScale(zoomLevel);
+    }, [zoomLevel]);
 
     useImperativeHandle(ref, () => ({
       triggerAction: (action: ActionType) => {
@@ -100,15 +113,46 @@ const CharacterStage = forwardRef<CharacterStageHandle, CharacterStageProps>(
           rendererRef.current.setEyeTrack(track);
         }
       },
+      updateMouseInteraction: (mousePos: Position) => {
+        if (rendererRef.current) {
+          rendererRef.current.updateMouseInteraction(mousePos);
+        }
+      },
+      triggerClickReaction: (clickPos: Position) => {
+        if (rendererRef.current) {
+          rendererRef.current.triggerClickReaction(clickPos);
+        }
+      },
     }), [onPositionUpdate, onCollision]);
 
+    const handleZoomIn = useCallback(() => {
+      setZoomLevel((prev) => Math.min(prev + 0.25, 1.75));
+    }, []);
+
+    const handleZoomOut = useCallback(() => {
+      setZoomLevel((prev) => Math.max(prev - 0.25, 0.5));
+    }, []);
+
+    const handleZoomReset = useCallback(() => {
+      setZoomLevel(1);
+    }, []);
+
     return (
-      <div className={styles.stage}>
+      <div className={styles.stage} ref={stageContainerRef}>
+        <div className={styles.zoomControls}>
+          <button className={styles.zoomBtn} onClick={handleZoomIn} title="放大">＋</button>
+          <span className={styles.zoomLabel}>{Math.round(zoomLevel * 100)}%</span>
+          <button className={styles.zoomBtn} onClick={handleZoomOut} title="缩小">－</button>
+          {zoomLevel !== 1 && (
+            <button className={styles.zoomResetBtn} onClick={handleZoomReset} title="重置">↺</button>
+          )}
+        </div>
         <canvas
           ref={canvasRef}
           className={styles.canvas}
-          width={600}
-          height={400}
+          width={CANVAS_WIDTH}
+          height={CANVAS_HEIGHT}
+          style={{ transform: `scale(${zoomLevel})`, transformOrigin: 'center center' }}
         />
         <CharacterSwitcher selectedTypes={characterTypes} onSwitch={onCharacterTypesChange || (() => {})} />
       </div>

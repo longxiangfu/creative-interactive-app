@@ -2,6 +2,7 @@ import { CharacterInstance, Position, ActionState, ActionType, CollisionEvent } 
 import { drawCatFace, drawDogFace, drawRabbitFace, drawRoosterFace, drawPigFace, drawCowFace, drawSheepFace, Emotion, EyeTrack } from '@/utils/drawCharacter';
 import { CollisionEngine } from './CollisionEngine';
 import { ACTION_DEFINITIONS } from '@/config/actions';
+import { MOUSE_INTERACTION_CONFIG } from '@/config/appConfig';
 
 export class MultiCharacterRenderer {
   private canvas: HTMLCanvasElement | null = null;
@@ -17,8 +18,10 @@ export class MultiCharacterRenderer {
   private homeOffsets: Map<string, Position> = new Map();
   private groupCenter: Position = { x: 300, y: 200 };
   private friction = 0.985;
-  private characterRadius = 80;
+  private characterRadius = 56;
   private attractStrength = 0.008;
+  private drawScale = 1.4;
+  private baseDrawScale = 1.4;
 
   constructor() {
     this.collisionEngine = new CollisionEngine();
@@ -34,6 +37,62 @@ export class MultiCharacterRenderer {
 
   setOnCollision(cb: (event: CollisionEvent) => void): void {
     this.onCollisionCallback = cb;
+  }
+
+  setDrawScale(scale: number): void {
+    this.drawScale = this.baseDrawScale * scale;
+  }
+
+  updateMouseInteraction(mousePos: Position): void {
+    const config = MOUSE_INTERACTION_CONFIG;
+    for (const [id, char] of this.characters) {
+      const dx = mousePos.x - char.position.x;
+      const dy = mousePos.y - char.position.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+
+      if (distance < config.dodgeThreshold) {
+        const safeDist = distance || 1;
+        const dirX = (char.position.x - mousePos.x) / safeDist;
+        const dirY = (char.position.y - mousePos.y) / safeDist;
+        const dodgeDist = config.dodgeThreshold + 30;
+        const targetX = mousePos.x + dirX * dodgeDist;
+        const targetY = mousePos.y + dirY * dodgeDist;
+
+        const jumpX = Math.max(-config.maxJumpPerFrame, Math.min(config.maxJumpPerFrame, targetX - char.position.x));
+        const jumpY = Math.max(-config.maxJumpPerFrame, Math.min(config.maxJumpPerFrame, targetY - char.position.y));
+        this.homePositions.set(id, { x: char.position.x + jumpX, y: char.position.y + jumpY });
+
+        if (char.currentAction !== 'dodge') {
+          char.currentAction = 'dodge';
+          char.actionState = ActionState.PLAYING;
+          char.actionElapsed = 0;
+        }
+      } else {
+        const targetX = char.position.x + dx * config.followSpeed;
+        const targetY = char.position.y + dy * config.followSpeed;
+        this.homePositions.set(id, { x: targetX, y: targetY });
+
+        if (char.currentAction !== 'follow') {
+          char.currentAction = 'follow';
+          char.actionState = ActionState.PLAYING;
+          char.actionElapsed = 0;
+        }
+      }
+    }
+  }
+
+  triggerClickReaction(clickPos: Position): void {
+    const config = MOUSE_INTERACTION_CONFIG;
+    for (const char of this.characters.values()) {
+      const dx = clickPos.x - char.position.x;
+      const dy = clickPos.y - char.position.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      if (distance <= config.clickRadius) {
+        char.currentAction = 'clickReact';
+        char.actionState = ActionState.PLAYING;
+        char.actionElapsed = 0;
+      }
+    }
   }
 
   setCharacters(types: string[]): void {
@@ -52,7 +111,7 @@ export class MultiCharacterRenderer {
       if (!currentTypes.includes(type)) {
         const id = `${type}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         const angle = (i / count) * Math.PI * 2;
-        const dist = count === 1 ? 0 : (120 + i * 40);
+        const dist = count === 1 ? 0 : (84 + i * 28);
         const offsetX = Math.cos(angle) * dist;
         const offsetY = Math.sin(angle) * dist;
         const homeX = this.groupCenter.x + offsetX;
@@ -267,68 +326,68 @@ export class MultiCharacterRenderer {
       ctx.translate(-x, -y);
     }
 
-    if (char.type === 'cat') drawCatFace(ctx, x, y, 2, emotion, eyeTrack);
-    else if (char.type === 'dog') drawDogFace(ctx, x, y, 2, emotion, eyeTrack);
-    else if (char.type === 'rabbit') drawRabbitFace(ctx, x, y, 2, emotion, eyeTrack);
-    else if (char.type === 'rooster') drawRoosterFace(ctx, x, y, 2, emotion, eyeTrack);
-    else if (char.type === 'pig') drawPigFace(ctx, x, y, 2, emotion, eyeTrack);
-    else if (char.type === 'cow') drawCowFace(ctx, x, y, 2, emotion, eyeTrack);
-    else if (char.type === 'sheep') drawSheepFace(ctx, x, y, 2, emotion, eyeTrack);
-    else drawCatFace(ctx, x, y, 2, emotion, eyeTrack);
+    if (char.type === 'cat') drawCatFace(ctx, x, y, this.drawScale, emotion, eyeTrack);
+    else if (char.type === 'dog') drawDogFace(ctx, x, y, this.drawScale, emotion, eyeTrack);
+    else if (char.type === 'rabbit') drawRabbitFace(ctx, x, y, this.drawScale, emotion, eyeTrack);
+    else if (char.type === 'rooster') drawRoosterFace(ctx, x, y, this.drawScale, emotion, eyeTrack);
+    else if (char.type === 'pig') drawPigFace(ctx, x, y, this.drawScale, emotion, eyeTrack);
+    else if (char.type === 'cow') drawCowFace(ctx, x, y, this.drawScale, emotion, eyeTrack);
+    else if (char.type === 'sheep') drawSheepFace(ctx, x, y, this.drawScale, emotion, eyeTrack);
+    else drawCatFace(ctx, x, y, this.drawScale, emotion, eyeTrack);
 
     if (char.currentAction === 'think') {
-      ctx.font = '48px serif';
+      ctx.font = '34px serif';
       ctx.fillStyle = '#6b7280';
       ctx.textAlign = 'left';
       ctx.textBaseline = 'alphabetic';
-      ctx.fillText('\u{1F4AD}', x + 100, y - 80);
+      ctx.fillText('\u{1F4AD}', x + 70, y - 56);
     }
     if (char.currentAction === 'happy' || char.currentAction === 'clap' || char.currentAction === 'complete') {
-      ctx.font = '40px serif';
+      ctx.font = '28px serif';
       ctx.textAlign = 'left';
       ctx.textBaseline = 'alphabetic';
-      ctx.fillText('✨', x + 70, y - 60);
-      ctx.fillText('✨', x - 80, y - 50);
+      ctx.fillText('✨', x + 49, y - 42);
+      ctx.fillText('✨', x - 56, y - 35);
     }
     if (char.currentAction === 'sad') {
-      ctx.font = '40px serif';
+      ctx.font = '28px serif';
       ctx.textAlign = 'left';
       ctx.textBaseline = 'alphabetic';
-      ctx.fillText('💧', x - 70, y - 10);
+      ctx.fillText('💧', x - 49, y - 7);
     }
     if (char.currentAction === 'angry') {
-      ctx.font = '36px serif';
+      ctx.font = '25px serif';
       ctx.textAlign = 'left';
       ctx.textBaseline = 'alphabetic';
-      ctx.fillText('💢', x + 60, y - 70);
+      ctx.fillText('💢', x + 42, y - 49);
     }
     if (char.currentAction === 'surprised' || char.currentAction === 'clickReact') {
-      ctx.font = '36px serif';
+      ctx.font = '25px serif';
       ctx.textAlign = 'left';
       ctx.textBaseline = 'alphabetic';
-      ctx.fillText('‼️', x + 70, y - 60);
+      ctx.fillText('‼️', x + 49, y - 42);
     }
     if (char.currentAction === 'follow') {
-      ctx.font = '36px serif';
+      ctx.font = '25px serif';
       ctx.textAlign = 'left';
       ctx.textBaseline = 'alphabetic';
-      ctx.fillText('💕', x + 60, y - 60);
+      ctx.fillText('💕', x + 42, y - 42);
     }
     if (char.currentAction === 'wave') {
       const waveOffset = Math.sin(this.globalTime / 150) * 15;
-      ctx.translate(x + 80, y - 40);
+      ctx.translate(x + 56, y - 28);
       ctx.rotate(waveOffset * 0.05);
-      ctx.translate(-x - 80, -(y - 40));
-      ctx.font = '48px serif';
+      ctx.translate(-x - 56, -(y - 28));
+      ctx.font = '34px serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText('👋', x + 80, y - 40);
+      ctx.fillText('👋', x + 56, y - 28);
     }
     if (char.currentAction === 'clap') {
       const clapScale = 1 + Math.sin(this.globalTime / 100) * 0.2;
-      ctx.translate(x + 70, y - 50);
+      ctx.translate(x + 49, y - 35);
       ctx.scale(clapScale, clapScale);
-      ctx.translate(-x - 70, -(y - 50));
+      ctx.translate(-x - 49, -(y - 35));
     }
 
     ctx.restore();
